@@ -8,6 +8,7 @@ import sys
 import os
 import subprocess
 import platform
+import time
 from pymediainfo import MediaInfo
 
 #NOTES
@@ -15,24 +16,25 @@ from pymediainfo import MediaInfo
 #Accepted filetypes
 fileTypes = ('.mp4', '.mkv', '.webm')
 
-def createConfig():
-    config = configparser.ConfigParser()
-    curPath = os.getcwd()
-    if platform.system() == 'Windows':
-        config['paths'] = {
-            'ffmpeg path':         os.path.join(curPath, 'bin', 'ffmpeg'),
-            'default input path':  os.path.join(curPath, 'in'),
-            'default output path': os.path.join(curPath, 'out')
-        }
-    else:
-        config['paths'] = {
-            'default input path': os.path.join(curPath, 'in'),
-            'default output path': os.path.join(curPath, 'out')
-        }
-    with open('convert.ini', 'w') as configfile:
-        config.write(configfile)
-
-def readConfig():
+def startup():
+    # Check if configfile exists
+    if not os.path.isfile(os.path.join(os.getcwd(),'convert.ini')):
+        config = configparser.ConfigParser()
+        curPath = os.getcwd()
+        if platform.system() == 'Windows':
+            config['paths'] = {
+                'ffmpeg path':         os.path.join(curPath,'bin','ffmpeg.exe'),
+                'default input path':  os.path.join(curPath,'in'),
+                'default output path': os.path.join(curPath,'out')
+            }
+        else:
+            config['paths'] = {
+                'default input path': os.path.join(curPath, 'in'),
+                'default output path': os.path.join(curPath, 'out')
+            }
+        with open('convert.ini', 'w') as configfile:
+            config.write(configfile)
+    # Read config file and add info to global variables
     global ffmpeg, inPath, outPath
     config = configparser.ConfigParser()
     config.read('convert.ini')
@@ -42,6 +44,14 @@ def readConfig():
         ffmpeg = 'ffmpeg'
     inPath =  config['paths']['default input path']
     outPath = config['paths']['default output path']
+    # Check if paths exists
+    if platform.system() == 'Windows':
+        if not os.path.exists(ffmpeg):
+            print("ffmpeg.exe missing! Exiting script!")
+            time.sleep(5)
+            sys.exit()
+    for path in (inPath, outPath):
+        os.makedirs(path, exist_ok=True)
 
 
 class videoFile:
@@ -324,8 +334,6 @@ def clearScreen():
 
 
 if __name__ == '__main__':
-    if not os.path.isfile(os.path.join(os.getcwd(),'convert.ini')):
-        createConfig()
-    readConfig()
+    startup()
     convertMenu()
     sys.exit()
