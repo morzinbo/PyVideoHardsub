@@ -12,7 +12,9 @@ mapped and subsequently burned into video.
     * sudo apt-get update
     * sudo apt-get install ffmpeg libav-tools x264 x265
   * Windows:
-    * place ffmpeg.exe in 'bin'
+    * download latest ffmpeg build from:  
+    https://ffmpeg.zeranoe.com/builds/
+    * extract ffmpeg.exe to 'bin' folder in script directory
 * pymediainfo
   * Ubuntu 16.04:
     * pip3 install git+git://github.com/sbraz/pymediainfo

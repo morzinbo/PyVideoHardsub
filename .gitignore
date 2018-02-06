@@ -1,0 +1,16 @@
+# generated from importing python scripts as modules
+__pycache__/
+
+# test stuff
+test*
+note*
+
+# for windows users
+# users should create and add this on their own
+bin/
+
+# for end users only
+# script will generate these
+in/
+out/
+*.ini
