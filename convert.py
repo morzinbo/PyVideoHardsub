@@ -201,7 +201,8 @@ def convertMenu():
 def quickConvert():
     "Harsubs input with first video, audio, and subtitle tracks"
     clearScreen()
-    promptPath = input("Please specify a file or folder: ")
+    promptPath = input(
+            "Please specify a file or folder[leave empty for default path]: ")
     if promptPath.find("\"") >= 0:
         promptPath = promptPath.strip("\"")
     if os.path.isdir(promptPath) or promptPath == '':
@@ -226,7 +227,8 @@ def advConvert():
     "Hardsubs inputs w/ choice of specific video, audio, and subtitle tracks"
     clearScreen()
     batchConvert = []
-    promptPath = input("Please specify a file or folder: ")
+    promptPath = input(
+            "Please specify a file or folder[leave empty for default path]: ")
     if promptPath.find('"') >= 0:
         promptPath = promptPath.strip("\"")
     if os.path.isdir(promptPath) or promptPath == '':
