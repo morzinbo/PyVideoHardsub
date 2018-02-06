@@ -16,11 +16,15 @@ from pymediainfo import MediaInfo
 #Accepted filetypes
 fileTypes = ('.mp4', '.mkv', '.webm')
 
+def getScriptPath():
+    return os.path.dirname(os.path.realpath(sys.argv[0]))
+
 def startup():
     # Check if configfile exists
-    if not os.path.isfile(os.path.join(os.getcwd(),'convert.ini')):
+    configPath = os.path.join(getScriptPath(),'convert')
+    if not os.path.isfile(configPath):
         config = configparser.ConfigParser()
-        curPath = os.getcwd()
+        curPath = getScriptPath()
         if platform.system() == 'Windows':
             config['paths'] = {
                 'ffmpeg path':         os.path.join(curPath,'bin','ffmpeg.exe'),
@@ -32,12 +36,12 @@ def startup():
                 'default input path': os.path.join(curPath, 'in'),
                 'default output path': os.path.join(curPath, 'out')
             }
-        with open('convert.ini', 'w') as configfile:
+        with open(configPath, 'w') as configfile:
             config.write(configfile)
     # Read config file and add info to global variables
     global ffmpeg, inPath, outPath
     config = configparser.ConfigParser()
-    config.read('convert.ini')
+    config.read(configPath)
     if platform.system() == 'Windows':
         ffmpeg =  config['paths']['ffmpeg path']
     else:
@@ -318,7 +322,7 @@ def videoInfo():
             os.chdir(inPath)
         else:
             os.chdir(promptPath)
-        for item in os.listfir(os.getcwd()):
+        for item in os.listdir(os.getcwd()):
             if os.path.isfile(os.path.join(os.getcwd(),item)) \
                 and item.endswith(fileTypes):
                 videoFile(os.path.join(os.getcwd(), name)).showVideoInfo()
