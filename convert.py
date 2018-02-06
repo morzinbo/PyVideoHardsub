@@ -21,7 +21,7 @@ def getScriptPath():
 
 def startup():
     # Check if configfile exists
-    configPath = os.path.join(getScriptPath(),'convert')
+    configPath = os.path.join(getScriptPath(),'convert.ini')
     if not os.path.isfile(configPath):
         config = configparser.ConfigParser()
         curPath = getScriptPath()
@@ -270,7 +270,6 @@ def advConvert():
                 batchConvert.append((fPath, fName, vTrack, aTrack, tTrack))
         if 'batchConvert' in locals():
             for convert in batchConvert:
-                #print(convert)
                 convertVideo(*convert)
             input("All videos converted. Press enter to return to menu...")
     if os.path.isfile(promptPath):
@@ -325,7 +324,7 @@ def videoInfo():
         for item in os.listdir(os.getcwd()):
             if os.path.isfile(os.path.join(os.getcwd(),item)) \
                 and item.endswith(fileTypes):
-                videoFile(os.path.join(os.getcwd(), name)).showVideoInfo()
+                videoFile(os.path.join(os.getcwd(), item)).showVideoInfo()
     elif os.path.isfile(promptPath):
         videoFile(promptPath).showVideoInfo()
     else:
