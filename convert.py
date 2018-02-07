@@ -108,64 +108,82 @@ class videoFile:
         if type(self.sInfo[current_track]) == int:
             print("Stream ID:", self.sInfo['%s_ID'      % \
                 self.sInfo[current_track]])
-            print("Title:",     self.sInfo['%s_title'   % \
+            print("Title:"    , self.sInfo['%s_title'   % \
                 self.sInfo[current_track]])
-            print("Format:",    self.sInfo['%s_format'  % \
+            print("Format:"   , self.sInfo['%s_format'  % \
                 self.sInfo[current_track]])
-            print("Language:",  self.sInfo['%s_language'% \
+            print("Language:" , self.sInfo['%s_language'% \
                 self.sInfo[current_track]])
         else:
             for track in self.sInfo[current_track]:
                 print("Stream ID:", self.sInfo['%s_ID'       % track])
-                print("Title:",     self.sInfo['%s_title'    % track])
-                print("Format:",    self.sInfo['%s_format'   % track])
-                print("Language:",  self.sInfo['%s_language' % track])
+                print("Title:"    , self.sInfo['%s_title'    % track])
+                print("Format:"   , self.sInfo['%s_format'   % track])
+                print("Language:" , self.sInfo['%s_language' % track])
 
 
-    def selectTrack(vObj, current_track, track_type):
+    def selectTrack(vObj, current_track, track_type, multi_flag=True):
         if   track_type == 1:
-            track_type = " Video"
+             track_type = " Video"
         elif track_type == 2:
-            track_type = "n Audio"
+             track_type = "n Audio"
         else:
-            track_type = " Subtitle"
+             track_type = " Subtitle"
         if type(vObj.sInfo[current_track]) == int:
-            loopNext = 2
-            loopExit = 3
+            if multi_flag == False:
+                loopNext = False
+                loopExit = 2
+            else:
+                loopNext = 2
+                loopExit = 3
             print("Select a%s track:" % track_type)
             print("1:", vObj.sInfo['%s_title'    % vObj.sInfo[current_track]],\
                         vObj.sInfo['%s_format'   % vObj.sInfo[current_track]],\
                         vObj.sInfo['%s_language' % vObj.sInfo[current_track]])
-            print("2: Skip file")
-            print("3: Return to main menu")
-            x = input("Select an option[1-3]: ")
+            if loopNext:
+                print("%d: Skip file" % loopNext)
+            print("%d: Return to main menu" % loopExit)
+            x = input("Select an option[1-%d]: " % loopExit)
         else:
-            loopNext = len(vObj.sInfo[current_track]) + 1
-            loopExit  = len(vObj.sInfo[current_track]) + 2
+            if multi_flag == False:
+                loopNext = False
+                loopExit = len(vObj.sInfo[current_track]) + 1
+            else:
+                loopNext = len(vObj.sInfo[current_track]) + 1
+                loopExit  = loopNext + 1
             print("Select a%s track" % track_type)
             for c, tracks in enumerate(vObj.sInfo[current_track]):
                 print("%s:" % str(c+1), \
                     vObj.sInfo['%s_title'    % tracks],\
                     vObj.sInfo['%s_format'   % tracks],\
                     vObj.sInfo['%s_language' % tracks])
-            print("%s: Skip file" % loopNext)
+            if loopNext:
+                print("%s: Skip file" % loopNext)
             print("%s: Return to main menu" % loopExit)
             x  = input("Select an option[1-%d]" % loopExit)
         print("--------------------------------------------------")
         if x.isdigit():
             x = int(x)
-            if 0 < x < loopNext:
-                x = x-1
-                return x
-            elif x == loopNext:
-                print("Skipping file...")
-                return "continue"
-            elif x == loopExit:
-                input("Returning to main menu. Press enter to continue...")
-                return "break"
+            if loopNext:
+                if 0 < x < loopNext:
+                    x = x-1
+                    return x
+                elif x == loopNext:
+                    print("Skipping file...")
+                    return "continue"
+                elif x == loopExit:
+                    input("Returning to main menu. Press enter to continue...")
+                    return "break"
+                else:
+                    print("Assuming first option...")
+                    return 0
             else:
-                print("Assuming first option...")
-                return 0
+                if 0 < x < loopExit:
+                    x = x-1
+                    return x
+                elif x == loopExit:
+                    input("Returning to main menu. Press enter to continue...")
+                    return "break"
         else:
             print("Assuming first option...")
             return 0
@@ -236,28 +254,27 @@ def advConvert():
                     del batchConvert
                     break
                 batchConvert.append((fPath, fName, vTrack, aTrack, tTrack))
-        if 'batchConvert' in locals():
+        if 'batchConvert' in locals() and batchConvert != []:
             for convert in batchConvert:
                 convertVideo(*convert)
-            input("All videos converted. Press enter to return to menu...")
+            print("All videos converted")
+            input("Press enter to return to main menu...")
+        elif 'batchConvert' in locals() and batchConvert == []:
+            print("No videos converted")
+            input("Press enter to return to main menu...")
     if os.path.isfile(promptPath):
         vObj = videoFile(promptPath)
         fPath = vObj.sInfo['fullPath']
-        fname = vObj.sInfo['fileName']
-        fPath = vObj.sInfo['fullPath']
         fName = vObj.sInfo['fileName']
         print(fName)
-        vTrack = vObj.selectTrack('vTracks', 1)
-        if type(vTrack) != 'int':
-            print("Returning to main menu. Press enter to continue...")
+        vTrack = vObj.selectTrack('vTracks', 1, False)
+        if type(vTrack) != int:
             return
-        aTrack = vObj.selectTrack('aTracks', 2)
-        if type(aTrack) != 'int':
-            print("Returning to main menu. Press enter to continue...")
+        aTrack = vObj.selectTrack('aTracks', 2, False)
+        if type(aTrack) != int:
             return
-        tTrack = vObj.selectTrack('tTracks', 3)
-        if type(tTrack) != 'int':
-            print("Returning to main menu. Press enter to continue...")
+        tTrack = vObj.selectTrack('tTracks', 3, False)
+        if type(tTrack) != int:
             return
         convertVideo(fPath, fName, vTrack, aTrack, tTrack)
         input("Video converted. Press enter to return to menu...")
