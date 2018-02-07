@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# TODO: Make script work with command line arguments
-# TODO: Make GUI
-# TODO: editable config
-# TODO: make cross platform
 import configparser
 import sys
 import os
@@ -10,8 +6,6 @@ import subprocess
 import platform
 import time
 from pymediainfo import MediaInfo
-
-#NOTES
 
 #Accepted filetypes
 fileTypes = ('.mp4', '.mkv', '.webm')
@@ -176,32 +170,6 @@ class videoFile:
             print("Assuming first option...")
             return 0
 
-
-
-def convertMenu():
-    "Looping menu for selecting working with files and folders directly"
-    ans = True
-    while ans:
-        clearScreen()
-        print("Welcome to Video Hardsub Reborn!")
-        print("What would you like to do?")
-        print("1: Quick Hardsub (uses first video,audio,subtitle tracks)")
-        print("2: Advanced Hardsub (select which streams to encode)")
-        print("3: Video Information")
-        print("4: Test stuff")
-        print("5: Quit")
-        x = input("Select an option[1-5]: ")
-        if x == '1':
-            quickConvert()
-        if x == '2':
-            advConvert()
-        if x == '3':
-            videoInfo()
-        if x == '4':
-            testStuff2()
-        if x == '5':
-            ans = None
-
 def quickConvert():
     "Harsubs input with first video, audio, and subtitle tracks"
     clearScreen()
@@ -298,7 +266,6 @@ def convertVideo(fPath, fName, vTrack, aTrack, tTrack):
     "Creates ffmpeg subprocess based on inputs from conversion methods"
     # ffmpeg -vf option escape chars are '\' and ':'
     # must escape escape chars in Windows environments
-    # not sure how necessary this is since linux uses other path characters
     subPath = "\'%s\'" \
         % fPath.replace("\\","\\\\").replace(":","\\:")
     subOpt = "subtitles=%s:si=%s" % (subPath, tTrack)
@@ -340,5 +307,25 @@ def clearScreen():
 
 if __name__ == '__main__':
     startup()
-    convertMenu()
+    ans = True
+    while ans:
+        clearScreen()
+        print("Welcome to Video Hardsub Reborn!")
+        print("What would you like to do?")
+        print("1: Quick Hardsub (uses first video,audio,subtitle tracks)")
+        print("2: Advanced Hardsub (select which streams to encode)")
+        print("3: Video Information")
+        print("4: Test stuff")
+        print("5: Quit")
+        x = input("Select an option[1-5]: ")
+        if x == '1':
+            quickConvert()
+        if x == '2':
+            advConvert()
+        if x == '3':
+            videoInfo()
+        if x == '4':
+            testStuff2()
+        if x == '5':
+            ans = None
     sys.exit()
