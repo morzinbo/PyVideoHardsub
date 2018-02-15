@@ -38,8 +38,7 @@ def startup():
         else:
             config['DEFAULT'] = {
                 'Input path': os.path.join(curPath, 'in'),
-                'Output path': os.path.join(curPath, 'out'),
-                'Accepted Filetypes': '.mp4 .mkv .webm'
+                'Output path': os.path.join(curPath, 'out')
             }
             config.add_section('Paths')
             configPathComments = (
@@ -76,7 +75,7 @@ def readConfig(var):
         os.makedirs(path, exist_ok=True)
         return path
     elif var == 'fileTypes':
-        return config['DEFAULT']['Accepted Filetypes'].split()
+        return tuple(config['DEFAULT']['Accepted Filetypes'].split())
 
 
 class videoFile:
