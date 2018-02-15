@@ -38,7 +38,8 @@ def startup():
         else:
             config['DEFAULT'] = {
                 'Input path': os.path.join(curPath, 'in'),
-                'Output path': os.path.join(curPath, 'out')
+                'Output path': os.path.join(curPath, 'out'),
+                'Accepted Filetypes': '.mp4 .mkv .webm'
             }
             config.add_section('Paths')
             configPathComments = (
