@@ -5,10 +5,9 @@ import os
 import subprocess
 import platform
 import time
+import argparse
+import textwrap
 from pymediainfo import MediaInfo
-
-#Accepted filetypes
-fileTypes = ('.mp4', '.mkv', '.webm')
 
 def getScriptPath():
     "Returns absolute path of script"
@@ -24,7 +23,8 @@ def startup():
             config['DEFAULT'] = {
                 'ffmpeg path': os.path.join(curPath,'bin','ffmpeg.exe'),
                 'Input path':  os.path.join(curPath,'in'),
-                'Output path': os.path.join(curPath,'out')
+                'Output path': os.path.join(curPath,'out'),
+                'Accepted Filetypes': '.mp4 .mkv .webm'
             }
             config.add_section('Paths')
             configPathComments = (
@@ -51,24 +51,31 @@ def startup():
                 config.set('Paths', comment)
         with open(configPath, 'w') as configfile:
             config.write(configfile)
-    # Read config file and add info to global variables
-    global ffmpeg, inPath, outPath
+
+def readConfig(var):
+    configPath = os.path.join(getScriptPath(),'convert.ini')
     config = configparser.ConfigParser()
     config.read(configPath)
-    if platform.system() == 'Windows':
-        ffmpeg =  config['Paths']['ffmpeg path']
-    else:
-        ffmpeg = 'ffmpeg'
-    inPath =  config['Paths']['Input path']
-    outPath = config['Paths']['Output path']
-    # Check if paths exists
-    if platform.system() == 'Windows':
-        if not os.path.exists(ffmpeg):
-            print("ffmpeg.exe missing! Exiting script!")
-            time.sleep(5)
-            sys.exit()
-    for path in (inPath, outPath):
+    if var == 'ffmpeg':
+        if platform.system() == 'Windows':
+            ffmpeg = config['Paths']['ffmpeg path']
+            if not os.path.exists(ffmpeg):
+                print("ffmpeg.exe missing! Exiting script!")
+                time.sleep(5)
+                sys.exit()
+            return ffmpeg
+        else:
+            return 'ffmpeg'
+    elif var == 'inPath':
+        path = config['Paths']['Input path']
         os.makedirs(path, exist_ok=True)
+        return path
+    elif var == 'outPath':
+        path = config['Paths']['Output path']
+        os.makedirs(path, exist_ok=True)
+        return path
+    elif var == 'fileTypes':
+        return config['DEFAULT']['Accepted Filetypes'].split()
 
 
 class videoFile:
@@ -192,12 +199,10 @@ class videoFile:
                     return -1
                 elif x == loopExit:
                     input("Returning to main menu. Press enter to continue...")
-                    x = -1
-                    return x
+                    return -2
                 else:
                     print("Assuming first option...")
-                    x = -2
-                    return x
+                    return 0
             else:
                 if 0 < x < loopExit:
                     x = x-1
@@ -209,94 +214,175 @@ class videoFile:
         else:
             print("Assuming first option...")
             return 0
+def main():
+    ans = True
+    while ans:
+        print(textwrap.dedent('''\
+            Welcome to PyVideoHardsub!
+            What would you like to do?
+            1: Quick Hardsub (uses first video,audio,subtitle tracks)
+            2: Advanced Hardsub (select which streams to encode)
+            3: Video Information
+            4: Quit'''))
+        x = input("Select an option[1-4]: ")
+        clearScreen()
+        if x == '1':
+            quickConvert(promptForPath())
+            input('Process complete! Press enter to continue return to menu...')
+            clearScreen()
+        if x == '2':
+            advConvert(promptForPath())
+            input('Process complete! Press enter to continue return to menu...')
+            clearScreen()
+        if x == '3':
+            videoInfo(promptForPath())
+            input('Process complete! Press enter to continue return to menu...')
+            clearScreen()
+        if x == '4':
+            ans = None
+    sys.exit()
 
 def promptForPath():
     x = input('Please specify the file or folder[empty for default path]:')
+    #Remove " from path (copy as path in windows)
     if x.find('\"') >= 0:
         x = x.strip('\"')
+    #If empty, set as default directory
     if x == '':
-        x = inPath
-    return x
+        x = readConfig('inPath')
+    x = os.path.realpath(x)
+    y = []
+    #Determine if input is file or directory
+    if os.path.isdir(x):
+        for items in sorted(os.listdir(x)):
+            #Only add valid video files to list
+            if items.endswith(readConfig('fileTypes')):
+                y.append(os.path.join(x,items))
+    elif os.path.isfile(x) and x.endswith(readConfig('fileTypes')):
+        y.append(x)
+    #return nothing if no files found
+    if len(y) == 0:
+        print('No files to process found!')
+        input()
+        return
+    return y
 
 def quickConvert(promptPath):
     "Harsubs input with first video, audio, and subtitle tracks"
     clearScreen()
-    if os.path.isdir(promptPath):
-        os.chdir(promptPath)
-        for item in os.listdir(os.getcwd()):
-            if os.path.isfile(os.path.join(os.getcwd(),item)) \
-                and item.endswith(fileTypes):
-                 vObj = videoFile(os.path.join(os.getcwd(), item))
-                 fPath = vObj.sInfo['fullPath']
-                 fName = vObj.sInfo['fileName']
-                 convertVideo(fPath, fName, 0,0,0)
-    elif os.path.isfile(promptPath):
-        convertVideo(promptPath, os.path.basename(promptPath), 0,0,0)
-    else:
-        print("Unable to find files to process!")
-    input("Process complete! Press enter to return to main menu.")
+    if not promptPath:
+        return
+    for item in promptPath:
+        convertVideo(item, os.path.basename(item), 0, 0, 0)
 
 def advConvert(promptPath):
     "Hardsubs inputs w/ choice of specific video, audio, and subtitle tracks"
-    if os.path.isdir(promptPath):
-        os.chdir(promptPath)
-        batchHardsub = []
-        for item in os.listdir(os.getcwd()):
-            if os.path.isfile(os.path.join(os.getcwd(), item)) \
-                and item.endswith(('.mkv','.mp4')):
-                vObj = videoFile(os.path.join(os.getcwd(), item))
-                fPath = vObj.sInfo['fullPath']
-                fName = vObj.sInfo['fileName']
-                print(fName)
-                vTrack = vObj.selectTrack('vTracks', 1)
-                if vTrack == -1:
-                    continue
-                elif vTrack == -2:
-                    del batchHardsub
-                    break
-                aTrack = vObj.selectTrack('aTracks', 2)
-                if aTrack == -1:
-                    continue
-                elif aTrack == -2:
-                    del batchHardsub
-                    break
-                tTrack = vObj.selectTrack('tTracks', 3)
-                if tTrack == -1:
-                    continue
-                elif tTrack == -2:
-                    del batchHardsub
-                    break
-                batchHardsub.append((fPath, fName, vTrack, aTrack, tTrack))
-        if 'batchHardsub' in locals() and batchHardsub != []:
-            for convert in batchHardsub:
-                convertVideo(*convert)
-            print("All videos converted")
-            input("Press enter to return to main menu...")
-        elif 'batchHardsub' in locals() and batchHardsub == []:
-            print("No videos converted")
-            input("Press enter to return to main menu...")
-    if os.path.isfile(promptPath):
-        vObj = videoFile(promptPath)
+    clearScreen()
+    if not promptPath:
+        return
+    convertQueue = []
+    if len(promptPath) > 1:
+        multi_flag = True
+    else:
+        multi_flag = False
+    for item in promptPath:
+        vObj = videoFile(item)
         fPath = vObj.sInfo['fullPath']
         fName = vObj.sInfo['fileName']
         print(fName)
-        vTrack = vObj.selectTrack('vTracks', 1, False)
-        if vTrack < 0:
-            return
-        aTrack = vObj.selectTrack('aTracks', 2, False)
-        if aTrack < 0:
-            return
-        tTrack = vObj.selectTrack('tTracks', 3, False)
-        if tTrack < 0:
-            return
-        convertVideo(fPath, fName, vTrack, aTrack, tTrack)
-        input("Video converted. Press enter to return to menu...")
-    clearScreen()
+        vTrack = vObj.selectTrack('vTracks',1, multi_flag)
+        if vTrack == -1:
+            continue
+        elif vTrack == -2:
+            del convertQueue
+            break
+        aTrack = vObj.selectTrack('aTracks',1, multi_flag)
+        if aTrack == -1:
+            continue
+        elif aTrack == -2:
+            del convertQueue
+            break
+        tTrack = vObj.selectTrack('tTracks',1, multi_flag)
+        if tTrack == -1:
+            continue
+        elif tTrack == -2:
+            del convertQueue
+            break
+        convertQueue.append((fPath, fName, vTrack, aTrack, tTrack))
+    if 'convertQueue' in locals():
+        for item in convertQueue:
+            convertVideo(*item)
 
-def argsConvert(args):
+def argsConvert():
     "For converting items command line arguments"
-    pass
+    parser = argparse.ArgumentParser(prog='PyVideoHardsub',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=textwrap.dedent('''\
+        PyVideoHardsub
+        ------------------------------------------------
 
+        This script will allow you to burn subtitles into a video
+        quickly by choosing first video, audio, and subtitle tracks or
+        in an advanced manner by letting you choose which tracks are
+        mapped and subsequently burned into video.
+
+        Run this script without arguments for an interactive menu.
+        '''))
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-q','--quick',help='''
+        Run quick conversion (First video, audio, and subtitle streams)
+        ''', action='store_const', const='q', dest='conType')
+    group.add_argument('-a','--advanced',help='''
+        Run advanced conversion (Pick and choose video, audio, and
+        subtitle streams)
+        ''', action='store_const', const='a', dest='conType')
+    group.add_argument('-i','--info',help='''
+        Displays video, audio, and subtitle track information
+        ''', action='store_const', const='i', dest='conType')
+    parser.add_argument('-p', metavar='PATH', nargs='+', help='''
+        Paths to files or directories to be processed. Subdirectories
+        will NOT be processed. Assumes default path if none given.
+        ''', dest='path', default=readConfig('inPath'))
+    args = parser.parse_args()
+
+    convertQueue = []
+    #Check if all arguments satisfied
+    if args.conType and args.path:
+        for paths in args.path:
+            fullPath = os.path.realpath(paths)
+            #Check if path is file or directory
+            if os.path.isfile(fullPath):
+                #check if file is valid video file
+                if paths.endswith(readConfig('fileTypes')):
+                    convertQueue.append(fullPath)
+            if os.path.isdir(fullPath):
+                #Run through files in directory
+                for files in os.listdir(fullPath):
+                    #Check if file in directory is valid video file
+                    if files.endswith(readConfig('fileTypes')):
+                        convertQueue.append(os.path.join(fullPath,files))
+        #Check if any valid paths were added to the queue
+        if len(convertQueue) > 0:
+            if   args.conType == 'q':
+                quickConvert(convertQueue)
+            elif args.conType == 'a':
+                advConvert(convertQueue)
+            elif args.conType == 'i':
+                videoInfo(convertQueue)
+        else:
+            print('No valid items in queue')
+            print('Exiting...')
+            sys.exit()
+    else:
+        #Check if conversion or path arguments are missing
+        if not args.conType:
+            print('Missing conversion argument. See help for more info.',
+                    '(run',scriptPath,'-h)')
+            print('Exiting...')
+            sys.exit(2)
+        elif not args.path:
+            print('Missing path arguments. See help for more info.',
+                    '(run',scriptPath,'-h)')
 def convertVideo(fPath, fName, vTrack, aTrack, tTrack):
     "Creates ffmpeg subprocess based on inputs from conversion methods"
     # ffmpeg -vf option escape chars are '\' and ':'
@@ -306,29 +392,16 @@ def convertVideo(fPath, fName, vTrack, aTrack, tTrack):
     subOpt = "subtitles=%s:si=%s" % (subPath, tTrack)
     vMap = "0:v:%s" % vTrack
     aMap = "0:a:%s" % aTrack
-    outFile = os.path.join(outPath, fName[:-4]) + ".mp4"
-    cmd = [ffmpeg, '-i', fPath, '-vf', subOpt, '-acodec', 'aac', \
+    outFile = os.path.join(readConfig('outPath'), fName[:-4]) + ".mp4"
+    cmd = [readConfig('ffmpeg'), '-i', fPath, '-vf', subOpt, '-acodec', 'aac', \
         '-map', vMap, '-map', aMap, '-f', 'mp4', outFile]
     process = subprocess.Popen(cmd)
     process.wait()
 
 def videoInfo(promptPath):
     "Show Info about all video, audio, and subtitle tracks"
-    if os.path.isdir(promptPath) or promptPath == '':
-        if promptPath == '':
-            os.chdir(inPath)
-        else:
-            os.chdir(promptPath)
-        for item in os.listdir(os.getcwd()):
-            if os.path.isfile(os.path.join(os.getcwd(),item)) \
-                and item.endswith(fileTypes):
-                videoFile(os.path.join(os.getcwd(), item)).showVideoInfo()
-    elif os.path.isfile(promptPath):
-        videoFile(promptPath).showVideoInfo()
-    else:
-        "Unable to find file or path!"
-    input("Press enter to continue.......")
-    clearScreen()
+    for item in promptPath:
+        videoFile(item).showVideoInfo()
 
 def clearScreen():
     if platform.system() == 'Windows':
@@ -338,27 +411,9 @@ def clearScreen():
 
 
 if __name__ == '__main__':
-    clearScreen()
     startup()
     if len(sys.argv) == 1:
-        ans = True
-        while ans:
-            print("Welcome to PyVideoHardsub!")
-            print("What would you like to do?")
-            print("1: Quick Hardsub (uses first video,audio,subtitle tracks)")
-            print("2: Advanced Hardsub (select which streams to encode)")
-            print("3: Video Information")
-            print("4: Quit")
-            x = input("Select an option[1-4]: ")
-            clearScreen()
-            if x == '1':
-                quickConvert(promptForPath())
-            if x == '2':
-                advConvert(promptForPath())
-            if x == '3':
-                videoInfo(promptForPath())
-            if x == '4':
-                ans = None
-        sys.exit()
+        clearScreen()
+        main()
     else:
-        argsConvert(sys.argv[1:])
+        argsConvert()

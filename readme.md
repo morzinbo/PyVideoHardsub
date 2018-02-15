@@ -22,7 +22,24 @@ mapped and subsequently burned into video.
 
 ## Usage
 
-For quick conversion and hardsubbing, place video files inside
+    usage: convert.py [-h] [-q | -a | -i] [-p PATH [PATH ...]]
+
+    Run this script without arguments for an interactive menu.
+
+    optional arguments:
+      -h, --help          show this help message and exit
+      -q, --quick         Run quick conversion (First video, audio, and subtitle
+                          streams)
+      -a, --advanced      Run advanced conversion (Pick and choose video, audio,
+                          and subtitle streams)
+      -i, --info          Displays video, audio, and subtitle track information
+      -p PATH [PATH ...]  Paths to files or directories to be processed.
+                          Subdirectories will NOT be processed. Assumes default
+                          path if none given.
+                          
+#### Interactive Menu
+
+For quick hardsubbing, place video files inside
 input path (default: path/to/script/in) and choose option 1
 with no path to convert everything inside of the input path with
 first video, audio, and subtitle stream.
