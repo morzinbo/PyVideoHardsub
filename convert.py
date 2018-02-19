@@ -20,36 +20,30 @@ def startup():
         config = configparser.ConfigParser(allow_no_value=True)
         curPath = getScriptPath()
         if platform.system() == 'Windows':
-            config['DEFAULT'] = {
-                'ffmpeg path': os.path.join(curPath,'bin','ffmpeg.exe'),
-                'Input path':  os.path.join(curPath,'in'),
-                'Output path': os.path.join(curPath,'out'),
-                'Accepted Filetypes': '.mp4 .mkv .webm'
-            }
             config.add_section('Paths')
             configPathComments = (
-                '# This is where you configure paths',
-                '# Make sure to use full paths',
-                '# For example, to set input path',
-                r'# Input path: C:\Path\To\input\folder'
+                r'# Uncomment and set full paths to use custom paths',
+                r'# FFmpeg Path: C:\Path\To\FFmpeg\Binary\ffmpeg.exe',
+                r'# Input Path: C:\Path\To\Input\Folder',
+                r'# Output Path: C:\Path\To\Output\Directory'
             )
             for comment in configPathComments:
                 config.set('Paths', comment)
         else:
-            config['DEFAULT'] = {
-                'Input path': os.path.join(curPath, 'in'),
-                'Output path': os.path.join(curPath, 'out'),
-                'Accepted Filetypes': '.mp4 .mkv .webm'
-            }
             config.add_section('Paths')
             configPathComments = (
-                '# This is where you configure paths',
-                '# Make sure to use full paths',
-                '# For example, to set input path',
-                '# Input path: /path/to/input/folder'
+                '# Input Path: /path/to/input/directory',
+                '# Output Path: /path/to/output/directory',
             )
             for comment in configPathComments:
                 config.set('Paths', comment)
+        config.add_section('Misc')
+        configMiscComments = (
+            '# Uncomment to set accepted filetypes, seperated by space',
+            '# Accepted Filetypes: .mp4 .mkv .webm'
+        )
+        for comment in configMiscComments:
+            config.set('Misc', comment)
         with open(configPath, 'w') as configfile:
             config.write(configfile)
 
@@ -57,26 +51,39 @@ def readConfig(var):
     configPath = os.path.join(getScriptPath(),'convert.ini')
     config = configparser.ConfigParser()
     config.read(configPath)
+    curPath = getScriptPath()
     if var == 'ffmpeg':
         if platform.system() == 'Windows':
-            ffmpeg = config['Paths']['ffmpeg path']
-            if not os.path.exists(ffmpeg):
-                print("ffmpeg.exe missing! Exiting script!")
-                time.sleep(5)
-                sys.exit()
+            if config.has_option('Paths','FFmpeg Path'):
+                ffmpeg = config['Paths']['FFmpeg Path']
+                if not os.path.exists(ffmpeg):
+                    print("ffmpeg.exe missing! Exiting script!")
+                    time.sleep(5)
+                    sys.exit()
+            else:
+                ffmpeg = os.path.join(curPath,'bin','ffmpeg.exe')
             return ffmpeg
         else:
             return 'ffmpeg'
     elif var == 'inPath':
-        path = config['Paths']['Input path']
+        if config.has_option('Paths','Input Path'):
+            path = config['Paths']['Input Path']
+        else:
+            path = os.path.join(curPath,'in')
         os.makedirs(path, exist_ok=True)
         return path
     elif var == 'outPath':
-        path = config['Paths']['Output path']
+        if config.has_option('Paths','Output Path'):
+            path = config['Paths']['Output Path']
+        else:
+            path = os.path.join(curPath,'out')
         os.makedirs(path, exist_ok=True)
         return path
     elif var == 'fileTypes':
-        return tuple(config['DEFAULT']['Accepted Filetypes'].split())
+        if config.has_option('Misc','Accepted Filetypes'):
+            return tuple(config['Misc']['Accepted Filetypes'].split())
+        else:
+            return ('.mp4','.mkv','.webm')
 
 
 class videoFile:
@@ -85,10 +92,7 @@ class videoFile:
     def __init__(self, fPath):
         mInfo = MediaInfo.parse(fPath)
         self.sInfo = {}
-        if platform.system() == 'Windows':
-            self.sInfo['fileName'] = fPath.split('\\')[-1]
-        else:
-            self.sInfo['fileName'] = fPath.split('/')[-1]
+        self.sInfo['fileName'] = os.path.split(fPath)[1]
         self.sInfo['fullPath'] = '%s' % fPath
         self.sInfo['movieName']='%s' % mInfo.tracks[0].movie_name
         for track in mInfo.tracks:
@@ -343,12 +347,12 @@ def argsConvert():
     parser.add_argument('-p', metavar='PATH', nargs='+', help='''
         Paths to files or directories to be processed. Subdirectories
         will NOT be processed. Assumes default path if none given.
-        ''', dest='path', default=readConfig('inPath'))
+        ''', dest='path', default=[readConfig('inPath')])
     args = parser.parse_args()
 
     convertQueue = []
     #Check if all arguments satisfied
-    if args.conType and args.path:
+    if args.conType:
         for paths in args.path:
             fullPath = os.path.realpath(paths)
             #Check if path is file or directory
@@ -358,7 +362,7 @@ def argsConvert():
                     convertQueue.append(fullPath)
             if os.path.isdir(fullPath):
                 #Run through files in directory
-                for files in os.listdir(fullPath):
+                for files in sorted(os.listdir(fullPath)):
                     #Check if file in directory is valid video file
                     if files.endswith(readConfig('fileTypes')):
                         convertQueue.append(os.path.join(fullPath,files))
@@ -378,12 +382,10 @@ def argsConvert():
         #Check if conversion or path arguments are missing
         if not args.conType:
             print('Missing conversion argument. See help for more info.',
-                    '(run',scriptPath,'-h)')
+                    '(run',getScriptPath(),'-h)')
             print('Exiting...')
             sys.exit(2)
-        elif not args.path:
-            print('Missing path arguments. See help for more info.',
-                    '(run',scriptPath,'-h)')
+
 def convertVideo(fPath, fName, vTrack, aTrack, tTrack):
     "Creates ffmpeg subprocess based on inputs from conversion methods"
     # ffmpeg -vf option escape chars are '\' and ':'
