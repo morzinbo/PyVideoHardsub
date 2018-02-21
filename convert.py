@@ -48,42 +48,42 @@ def startup():
             config.write(configfile)
 
 def readConfig(var):
-    configPath = os.path.join(getScriptPath(),'convert.ini')
+    configPath = 'convert.ini'
     config = configparser.ConfigParser()
     config.read(configPath)
     curPath = getScriptPath()
     if var == 'ffmpeg':
         if platform.system() == 'Windows':
-            if config.has_option('Paths','FFmpeg Path'):
-                ffmpeg = config['Paths']['FFmpeg Path']
-                if not os.path.exists(ffmpeg):
+            if config.has_option('Paths','FFmpeg Path') and \
+                not config['Paths']['FFmpeg Path'] == '':
+                configReturn = config['Paths']['FFmpeg Path']
+                if not os.path.exists(configReturn):
                     print("ffmpeg.exe missing! Exiting script!")
                     time.sleep(5)
                     sys.exit()
             else:
-                ffmpeg = os.path.join(curPath,'bin','ffmpeg.exe')
-            return ffmpeg
+                configReturn = os.path.join(curPath,'bin','ffmpeg.exe')
         else:
-            return 'ffmpeg'
+            configReturn = 'ffmpeg'
     elif var == 'inPath':
         if config.has_option('Paths','Input Path'):
-            path = config['Paths']['Input Path']
+            configReturn = config['Paths']['Input Path']
         else:
-            path = os.path.join(curPath,'in')
-        os.makedirs(path, exist_ok=True)
-        return path
+            configReturn = os.path.join(curPath,'in')
+        os.makedirs(configReturn, exist_ok=True)
     elif var == 'outPath':
         if config.has_option('Paths','Output Path'):
             path = config['Paths']['Output Path']
         else:
             path = os.path.join(curPath,'out')
         os.makedirs(path, exist_ok=True)
-        return path
     elif var == 'fileTypes':
-        if config.has_option('Misc','Accepted Filetypes'):
-            return tuple(config['Misc']['Accepted Filetypes'].split())
+        if config.has_option('Misc','Accepted Filetypes') and \
+            not config['Misc']['Accepted Filetypes'] == '':
+            configReturn = (config['Misc']['Accepted Filetypes'].split())
         else:
-            return ('.mp4','.mkv','.webm')
+            configReturn = ('.mp4','.mkv','.webm')
+    return configReturn
 
 
 class videoFile:
@@ -104,22 +104,19 @@ class videoFile:
                 self.sInfo['%s_language' % track.track_id]='%s' % track.language
                 if tType == 'Video':
                     if not 'vTracks' in self.sInfo:
-                        self.sInfo['vTracks'] = track.track_id
+                        self.sInfo['vTracks'] = [track.track_id]
                     else:
-                        self.sInfo['vTracks'] = \
-                            [self.sInfo.pop('vTracks'), track.track_id]
+                        self.sInfo['vTracks'].append(track.track_id)
                 if tType == 'Audio':
                     if not 'aTracks' in self.sInfo:
-                        self.sInfo['aTracks'] = track.track_id
+                        self.sInfo['aTracks'] = [track.track_id]
                     else:
-                        self.sInfo['aTracks'] = \
-                            [self.sInfo.pop('aTracks'), track.track_id]
+                        self.sInfo['aTracks'].append(track.track_id)
                 if tType == 'Text':
                     if not 'tTracks' in self.sInfo:
-                        self.sInfo['tTracks'] = track.track_id
+                        self.sInfo['tTracks'] = [track.track_id]
                     else:
-                        self.sInfo['tTracks'] = \
-                            [self.sInfo.pop('tTracks'), track.track_id]
+                        self.sInfo['tTracks'].append(track.track_id)
 
     def showVideoInfo(self):
         print("File Name:", self.sInfo['fileName'])
@@ -136,21 +133,11 @@ class videoFile:
         print("--------------------------------------------------")
 
     def showTrackInfo(self, current_track):
-        if type(self.sInfo[current_track]) == int:
-            print("Stream ID:", self.sInfo['%s_ID'      % \
-                self.sInfo[current_track]])
-            print("Title:"    , self.sInfo['%s_title'   % \
-                self.sInfo[current_track]])
-            print("Format:"   , self.sInfo['%s_format'  % \
-                self.sInfo[current_track]])
-            print("Language:" , self.sInfo['%s_language'% \
-                self.sInfo[current_track]])
-        else:
-            for track in self.sInfo[current_track]:
-                print("Stream ID:", self.sInfo['%s_ID'       % track])
-                print("Title:"    , self.sInfo['%s_title'    % track])
-                print("Format:"   , self.sInfo['%s_format'   % track])
-                print("Language:" , self.sInfo['%s_language' % track])
+        for track in self.sInfo[current_track]:
+            print("Stream ID:", self.sInfo['%s_ID'       % track])
+            print("Title:"    , self.sInfo['%s_title'    % track])
+            print("Format:"   , self.sInfo['%s_format'   % track])
+            print("Language:" , self.sInfo['%s_language' % track])
 
 
     def selectTrack(vObj, current_track, track_type, multi_flag=True):
