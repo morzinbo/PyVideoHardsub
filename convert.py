@@ -225,13 +225,13 @@ def promptForPath():
         return
     return y
 
-def quickConvert(promptPath):
+def quickConvert(promptPath, vTrack=0, aTrack=0, tTrack=0):
     "Harsubs input with first video, audio, and subtitle tracks"
     clearScreen()
     if not promptPath:
         return
     for item in promptPath:
-        convertVideo(item, os.path.basename(item), 0, 0, 0)
+        convertVideo(item, os.path.basename(item), vTrack, aTrack, tTrack)
 
 def advConvert(promptPath):
     "Hardsubs inputs w/ choice of specific video, audio, and subtitle tracks"
@@ -297,6 +297,15 @@ def argsConvert():
     group.add_argument('-i','--info',help='''
         Displays video, audio, and subtitle track information
         ''', action='store_const', const='i', dest='conType')
+    parser.add_argument('-video', metavar='VTRACK', help='''
+        Specify video track (for quick conversion) Default: 1
+        ''', dest='vTrack', default=1, type=int)
+    parser.add_argument('-audio', metavar='ATRACK', help='''
+        Specify audio track (for quick conversion) Default: 1
+        ''', dest='aTrack', default=1, type=int)
+    parser.add_argument('-sub', metavar='STRACK', help='''
+        Specify subtitle track (for quick conversion) Default: 1
+        ''', dest='tTrack', default=1, type=int)
     parser.add_argument('-p', metavar='PATH', nargs='+', help='''
         Paths to files or directories to be processed. Subdirectories
         will NOT be processed. Assumes default path if none given.
@@ -322,7 +331,9 @@ def argsConvert():
         #Check if any valid paths were added to the queue
         if len(convertQueue) > 0:
             if   args.conType == 'q':
-                quickConvert(convertQueue)
+                quickConvert(
+                    convertQueue, args.vTrack-1, args.aTrack-1, args.tTrack-1
+                    )
             elif args.conType == 'a':
                 advConvert(convertQueue)
             elif args.conType == 'i':
