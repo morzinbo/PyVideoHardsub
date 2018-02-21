@@ -13,40 +13,6 @@ def getScriptPath():
     "Returns absolute path of script"
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
-def startup():
-    # Check if configfile exists
-    configPath = os.path.join(getScriptPath(),'convert.ini')
-    if not os.path.isfile(configPath):
-        config = configparser.ConfigParser(allow_no_value=True)
-        curPath = getScriptPath()
-        if platform.system() == 'Windows':
-            config.add_section('Paths')
-            configPathComments = (
-                r'# Uncomment and set full paths to use custom paths',
-                r'# FFmpeg Path: C:\Path\To\FFmpeg\Binary\ffmpeg.exe',
-                r'# Input Path: C:\Path\To\Input\Folder',
-                r'# Output Path: C:\Path\To\Output\Directory'
-            )
-            for comment in configPathComments:
-                config.set('Paths', comment)
-        else:
-            config.add_section('Paths')
-            configPathComments = (
-                '# Input Path: /path/to/input/directory',
-                '# Output Path: /path/to/output/directory',
-            )
-            for comment in configPathComments:
-                config.set('Paths', comment)
-        config.add_section('Misc')
-        configMiscComments = (
-            '# Uncomment to set accepted filetypes, seperated by space',
-            '# Accepted Filetypes: .mp4 .mkv .webm'
-        )
-        for comment in configMiscComments:
-            config.set('Misc', comment)
-        with open(configPath, 'w') as configfile:
-            config.write(configfile)
-
 def readConfig(var):
     configPath = 'convert.ini'
     config = configparser.ConfigParser()
@@ -73,10 +39,10 @@ def readConfig(var):
         os.makedirs(configReturn, exist_ok=True)
     elif var == 'outPath':
         if config.has_option('Paths','Output Path'):
-            path = config['Paths']['Output Path']
+            configReturn = config['Paths']['Output Path']
         else:
-            path = os.path.join(curPath,'out')
-        os.makedirs(path, exist_ok=True)
+            configReturn = os.path.join(curPath,'out')
+        os.makedirs(configReturn, exist_ok=True)
     elif var == 'fileTypes':
         if config.has_option('Misc','Accepted Filetypes') and \
             not config['Misc']['Accepted Filetypes'] == '':
@@ -401,7 +367,6 @@ def clearScreen():
 
 
 if __name__ == '__main__':
-    startup()
     if len(sys.argv) == 1:
         clearScreen()
         main()
